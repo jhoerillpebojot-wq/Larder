@@ -3515,7 +3515,7 @@ window.addEventListener("pagehide", () => App.save());
 })();
 App.init();
 </script>
-  <!-- ===== LARDER MOBILE PATCH: paste this whole block right before </body> (after your last </script>) ===== -->
+<!-- ===== LARDER MOBILE PATCH: paste this whole block right before </body> (after your last </script>) ===== -->
 <style>
 /* defaults (desktop untouched) */
 .chip-more{display:none}
@@ -3542,6 +3542,8 @@ App.init();
   /* filters become ONE scrolling row instead of wrapping into a pile */
   .filter-row{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;margin-right:-16px;padding-right:16px;scrollbar-width:none}
   .filter-row::-webkit-scrollbar{display:none}
+  /* short rows (2-5 choices) wrap so every option is visible without scrolling */
+  #panel-whatcancook .filter-row,.set-row .filter-row,.modal-box .filter-row,#inst-tabs,#fb-types{flex-wrap:wrap;overflow:visible;margin-right:0;padding-right:0}
   .search-wrap{width:100%;margin:0!important}
   .search-input{min-height:48px}
 
@@ -3675,6 +3677,18 @@ App.init();
   };
   setTimeout(check, 9000);
   setInterval(check, 30000);
+
+  /* 4) Scrolling filter rows: when a chip is tapped, slide it fully into view */
+  document.addEventListener('click', e => {
+    const chip = e.target.closest('.filter-chip'); if (!chip) return;
+    const row = chip.closest('.filter-row'); if (!row) return;
+    setTimeout(() => {
+      if (row.scrollWidth <= row.clientWidth + 2) return;           /* nothing hidden */
+      const on = row.querySelector('.filter-chip[aria-pressed="true"]') || chip;
+      const r = row.getBoundingClientRect(), c = on.getBoundingClientRect();
+      row.scrollBy({ left: c.left - r.left - (r.width - c.width) / 2, behavior: 'smooth' });
+    }, 60);
+  });
 })();
 </script>
 </body>
