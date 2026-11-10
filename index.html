@@ -3515,5 +3515,167 @@ window.addEventListener("pagehide", () => App.save());
 })();
 App.init();
 </script>
+  <!-- ===== LARDER MOBILE PATCH: paste this whole block right before </body> (after your last </script>) ===== -->
+<style>
+/* defaults (desktop untouched) */
+.chip-more{display:none}
+.tb-right{display:none}
+#nudge{display:none}
+
+@media (max-width:880px){
+  /* ---- breathing room + bigger touch targets ---- */
+  main.content{padding:18px 16px 120px}
+  .page-head{margin-bottom:18px;gap:14px}
+  .page-head .display{font-size:26px}
+  .page-head > div > p{display:none}
+  .btn{min-height:48px;font-size:15px;padding:12px 18px;border-radius:10px}
+  .btn-small{min-height:44px;font-size:14px;padding:10px 16px}
+  .filter-chip{min-height:44px;font-size:14px;padding:10px 18px;white-space:nowrap}
+  input,select,textarea{font-size:16px!important}
+  select.day-add,select.add-to-day,select.move-day{min-height:48px;font-size:15px!important}
+  .qty-stepper button{width:44px;height:44px;font-size:18px}
+  .qty-stepper input{min-height:44px}
+  .icon-btn{padding:10px}
+  .icon-btn svg{width:20px;height:20px}
+  input[type="checkbox"]{width:24px;height:24px}
+
+  /* filters become ONE scrolling row instead of wrapping into a pile */
+  .filter-row{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;margin-right:-16px;padding-right:16px;scrollbar-width:none}
+  .filter-row::-webkit-scrollbar{display:none}
+  .search-wrap{width:100%;margin:0!important}
+  .search-input{min-height:48px}
+
+  /* ---- top bar: Install + Settings, so the bottom bar stays at 5 tabs ---- */
+  .mobile-topbar .tb-right{display:flex;align-items:center;gap:8px;width:auto!important}
+  .tb-install{background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;font-weight:700;font-size:13px;padding:0 14px;height:40px;cursor:pointer}
+  .tb-gear{background:none;border:1px solid var(--border-hairline);border-radius:8px;width:40px;height:40px;color:var(--text-primary);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+  .tb-gear svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+  #bn-settings{display:none}
+  .bottom-nav button{min-height:56px;font-size:11px}
+  .bottom-nav button svg{width:24px;height:24px}
+
+  /* ---- planner: two clear actions, cart is already in the bottom bar ---- */
+  #panel-planner .actions{display:flex;gap:10px;width:100%}
+  #panel-planner .actions .btn{flex:1;justify-content:center}
+  #panel-planner .actions .btn-accent{display:none}
+  #panel-planner .actions .btn-ghost:nth-child(2){background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .mini-stats{margin:-4px 0 16px}
+  .suggest-band{padding:16px}
+  .suggest-band .sub{display:none}
+  .suggest-card{width:230px}
+  .day-col{padding:14px;gap:12px;border-radius:12px}
+  .meal-chip{padding:14px 14px 12px}
+  .meal-chip .m-title{font-size:15px;padding-right:48px}
+  .meal-chip .remove-x{top:4px;right:2px}
+  .meal-chip .m-meta{font-size:12.5px}
+  .chip-more{display:inline-flex;position:absolute;right:6px;bottom:6px;background:none;border:1px solid var(--border-hairline);border-radius:8px;color:var(--text-secondary);width:42px;height:36px;font-size:18px;line-height:1;align-items:center;justify-content:center;cursor:pointer}
+  .meal-chip .move-day,.meal-chip button.m-meta{display:none}
+  .meal-chip.show-tools .move-day{display:block}
+  .meal-chip.show-tools button.m-meta{display:inline-flex;margin-top:8px;min-height:36px;font-size:13px}
+
+  /* ---- recipe cards: just the essentials ---- */
+  .recipe-card{padding:18px;gap:12px}
+  .recipe-card .ing-preview,.recipe-card .nutrition-line,.meta-chip.spice{display:none}
+  .recipe-card h3.title-btn{font-size:18px}
+
+  /* ---- pantry: Add item becomes a floating button, the rest stays quiet ---- */
+  #panel-pantry .actions{display:flex;flex-direction:column;gap:10px;width:100%}
+  #panel-pantry .actions .more-menu{display:none}
+  #panel-pantry .actions .btn-ghost{width:100%;justify-content:center}
+  #panel-pantry .actions .btn-accent{position:fixed;right:16px;bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:37;border-radius:999px;padding:0 22px;min-height:54px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .pantry-item{padding:18px;gap:14px}
+  .pantry-item .foot-row .store-tag{display:none}
+  .pantry-item .foot-row{justify-content:flex-end}
+
+  /* ---- cart: each item is a roomy card ---- */
+  .cart-summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .summary-card{min-width:0;padding:12px}
+  .summary-card .num{font-size:22px}
+  .cart-toolbar{justify-content:stretch}
+  .cart-toolbar .btn{flex:1;justify-content:center}
+  .cart-toolbar .btn:nth-child(2){display:none}
+  .add-custom-row{padding:16px}
+  table.cart-table{background:none!important;border:0!important}
+  table.cart-table caption{display:none}
+  #cart-table tbody tr{display:grid!important;grid-template-columns:48px 1fr auto;align-items:center;gap:2px 8px;background:var(--bg-panel);border:1px solid var(--border-hairline-soft)!important;border-radius:14px;margin-bottom:12px;padding:12px 10px}
+  #cart-table tbody td{padding:4px 6px!important;width:auto!important}
+  #cart-table .mobile-label{display:none}
+  #cart-table td:nth-child(1){grid-area:1/1}
+  #cart-table td:nth-child(2){grid-area:1/2/2/4;font-size:16px}
+  #cart-table td:nth-child(3){grid-area:2/2}
+  #cart-table td:nth-child(4){grid-area:2/3;color:var(--text-secondary)}
+  #cart-table td:nth-child(5){grid-area:3/1/4/4}
+  #cart-table .cart-actions-cell{justify-content:space-between;margin-top:6px}
+  .cart-qty-input{width:100%;min-height:44px}
+
+  /* ---- install nudge card ---- */
+  #nudge{position:fixed;left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:66;background:var(--bg-card);border:1px solid var(--accent);border-radius:16px;padding:16px;box-shadow:0 12px 32px rgba(0,0,0,.45);flex-direction:column;gap:12px;transform:translateY(24px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
+  #nudge.show{display:flex;opacity:1;transform:none;pointer-events:auto}
+  #nudge .nd-txt b{display:block;font-size:16px;margin-bottom:2px}
+  #nudge .nd-txt span{font-size:13.5px;color:var(--text-secondary)}
+  #nudge .nd-btns{display:flex;gap:10px}
+  #nudge .nd-btns .btn{flex:1;justify-content:center}
+}
+</style>
+
+<script>
+/* ===== Larder mobile patch (runs after App.init) ===== */
+(function () {
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const mobile = () => matchMedia('(max-width: 880px)').matches;
+  const clickInstall = () => { const b = document.getElementById('side-install'); if (b) b.click(); };
+
+  /* 1) Top bar: visible Install pill + Settings gear */
+  const bar = document.querySelector('.mobile-topbar');
+  const right = bar && bar.lastElementChild;
+  if (right) {
+    right.className = 'tb-right'; right.removeAttribute('style');
+    right.innerHTML = (standalone() ? '' : '<button class="tb-install" id="tb-install">Install</button>') +
+      '<button class="tb-gear" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg></button>';
+    const ti = document.getElementById('tb-install'); if (ti) ti.onclick = clickInstall;
+    right.querySelector('.tb-gear').onclick = () => App.setView('settings');
+  }
+
+  /* 2) Planned meals: tidy chip, a "..." button reveals Move / Change version */
+  const _rw = App.renderWeek;
+  App.renderWeek = function () {
+    _rw.call(this);
+    document.querySelectorAll('#week-grid .meal-chip').forEach(chip => {
+      if (chip.querySelector('.chip-more')) return;
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip-more'; b.textContent = '\u22EF'; b.setAttribute('aria-label', 'More options for this meal');
+      b.onclick = e => { e.stopPropagation(); chip.classList.toggle('show-tools'); };
+      chip.appendChild(b);
+    });
+  };
+  App.renderWeek();
+
+  /* 3) Install nudge: first visit after ~9s, then again after 3, 7, then every 14 days */
+  const K = 'larder.installNudge', DAY = 864e5, GAPS = [0, 3 * DAY, 7 * DAY, 14 * DAY];
+  const read = () => { try { return JSON.parse(localStorage.getItem(K) || '{}') || {}; } catch (e) { return {}; } };
+  const write = o => { try { localStorage.setItem(K, JSON.stringify(o)); } catch (e) {} };
+  let st = read();
+  const card = document.createElement('div');
+  card.id = 'nudge'; card.setAttribute('role', 'dialog'); card.setAttribute('aria-label', 'Install Larder');
+  card.innerHTML = '<div class="nd-txt"><b>Install Larder</b><span>Opens like an app and works offline, right from your home screen.</span></div>' +
+    '<div class="nd-btns"><button class="btn btn-accent" id="nd-yes">Install</button><button class="btn btn-ghost" id="nd-no">Not now</button></div>';
+  document.body.appendChild(card);
+  const close = snooze => {
+    card.classList.remove('show');
+    if (snooze) { st.count = (st.count || 0) + 1; st.last = Date.now(); write(st); }
+  };
+  document.getElementById('nd-yes').onclick = () => { close(true); clickInstall(); };
+  document.getElementById('nd-no').onclick = () => close(true);
+  addEventListener('appinstalled', () => close(false));
+  const due = () => !standalone() && mobile() && Date.now() - (st.last || 0) >= GAPS[Math.min(st.count || 0, 3)];
+  const check = () => {
+    if (card.classList.contains('show') || !due()) return;
+    if (document.querySelector('.modal-overlay.open') || document.documentElement.classList.contains('modal-open')) return;
+    card.classList.add('show');
+  };
+  setTimeout(check, 9000);
+  setInterval(check, 30000);
+})();
+</script>
 </body>
 </html>
