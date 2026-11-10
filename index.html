@@ -3359,6 +3359,160 @@ window.addEventListener("pagehide", () => App.save());
 
   Object.keys(OVR).forEach(applyOne);
 })();
+  /* =====================================================================
+   5) IN-APP FEEDBACK + RECIPE REQUESTS
+   Paste this block inside the existing <script>, on the line just ABOVE
+   the final  App.init();   (put it after the "Modify recipe" block if you added that)
+   ===================================================================== */
+(function () {
+  /* ---- WHERE FEEDBACK GOES (fill in ONE of these, see the steps in chat) ---- */
+  const FEEDBACK = {
+    web3formsKey: "",   // e.g. "a1b2c3d4-...."  from web3forms.com (free)
+    endpoint: ""        // or any URL that accepts a JSON POST, e.g. a Formspree link
+  };
+
+  const QK = "larder.feedbackQueue";
+  const $ = id => document.getElementById(id);
+  const TYPES = [["recipe", "Recipe request"], ["idea", "Idea"], ["bug", "Something is broken"], ["other", "Other"]];
+  let type = "recipe", sending = false, lastSend = 0;
+
+  const configured = () => !!(FEEDBACK.web3formsKey || FEEDBACK.endpoint);
+  const readQ = () => { try { return JSON.parse(localStorage.getItem(QK) || "[]") || []; } catch (e) { return []; } };
+  const writeQ = q => { try { localStorage.setItem(QK, JSON.stringify(q)); } catch (e) {} };
+
+  /* ---- sending (with a queue so nothing is lost offline) ---- */
+  async function post(item) {
+    const body = JSON.stringify({ subject: item.subject, from_name: "Larder app", message: item.text, type: item.type, dish: item.dish });
+    const headers = { "Content-Type": "application/json", "Accept": "application/json" };
+    if (FEEDBACK.web3formsKey) {
+      const r = await fetch("https://api.web3forms.com/submit", { method: "POST", headers,
+        body: JSON.stringify(Object.assign(JSON.parse(body), { access_key: FEEDBACK.web3formsKey })) });
+      const d = await r.json().catch(() => ({}));
+      return r.ok && d.success !== false;
+    }
+    if (FEEDBACK.endpoint) {
+      const r = await fetch(FEEDBACK.endpoint, { method: "POST", headers, body });
+      return r.ok;
+    }
+    return false;
+  }
+  let flushing = false;
+  async function flush() {
+    if (flushing || !configured() || !navigator.onLine) return;
+    flushing = true;
+    try {
+      let q = readQ();
+      while (q.length) {
+        let ok = false;
+        try { ok = await post(q[0]); } catch (e) { ok = false; }
+        if (!ok) break;
+        q = readQ().filter(x => x.id !== q[0].id); writeQ(q);
+      }
+    } finally { flushing = false; }
+  }
+
+  /* ---- the form ---- */
+  document.body.insertAdjacentHTML("beforeend",
+    '<div class="modal-overlay" id="overlay-feedback" role="dialog" aria-modal="true" aria-labelledby="fb-title">' +
+      '<div class="modal-box modal-wide"><div class="display" id="fb-title">Feedback &amp; requests</div>' +
+      '<p class="meta">Tell us what to fix or improve, or which recipes you want added. Sent straight from the app.</p>' +
+      '<div class="field-row"><span class="field-label">What is this about?</span><div class="filter-row" id="fb-types" style="margin:0;"></div></div>' +
+      '<div class="field-row" id="fb-dish-wrap"><label class="field-label" for="fb-dish">Recipe or dish name</label>' +
+      '<input type="text" id="fb-dish" maxlength="80" placeholder="e.g. Kinilaw na Tanigue"></div>' +
+      '<div class="field-row"><label class="field-label" for="fb-msg" id="fb-msg-label">Details</label>' +
+      '<textarea id="fb-msg" maxlength="1500" style="min-height:130px;"></textarea></div>' +
+      '<div class="field-row"><label class="field-label" for="fb-contact">Your name or contact (optional)</label>' +
+      '<input type="text" id="fb-contact" maxlength="80" placeholder="Only if you want a reply">' +
+      '<span class="field-hint">Leave it blank to stay anonymous.</span></div>' +
+      '<input type="text" id="fb-hp" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0;height:0;width:0;">' +
+      '<div class="modal-actions"><button class="btn btn-ghost" id="fb-cancel">Cancel</button>' +
+      '<button class="btn btn-accent" id="fb-send">Send</button></div></div></div>');
+
+  function drawTypes() {
+    $("fb-types").innerHTML = TYPES.map(t => '<button type="button" class="filter-chip small" data-t="' + t[0] + '" aria-pressed="' + (t[0] === type) + '">' + t[1] + "</button>").join("");
+    $("fb-dish-wrap").style.display = type === "recipe" ? "" : "none";
+    $("fb-msg-label").textContent = type === "recipe" ? "Anything we should know? (optional)" : "Details";
+    $("fb-msg").placeholder = type === "recipe" ? "Where it's from, ingredients you know, how you like it..." :
+      type === "bug" ? "What happened, and on which screen?" : "Tell us your idea or thought...";
+  }
+  $("fb-types").addEventListener("click", e => {
+    const b = e.target.closest("[data-t]"); if (!b) return;
+    type = b.dataset.t; drawTypes();
+  });
+  function openFeedback(t) {
+    if (t) type = t;
+    drawTypes();
+    App.openModal("overlay-feedback");
+    setTimeout(() => $(type === "recipe" ? "fb-dish" : "fb-msg").focus(), 30);
+  }
+  $("fb-cancel").onclick = () => App.closeModal("overlay-feedback");
+
+  $("fb-send").onclick = async () => {
+    if (sending) return;
+    const dish = $("fb-dish").value.trim(), msg = $("fb-msg").value.trim(), contact = $("fb-contact").value.trim();
+    if (type === "recipe" ? !dish : msg.length < 5) {
+      App.toast(type === "recipe" ? "Please enter the recipe or dish name" : "Please write a few words first"); return;
+    }
+    if ($("fb-hp").value) { App.closeModal("overlay-feedback"); App.toast("Thank you!"); return; }   /* spam trap */
+    if (Date.now() - lastSend < 15000) { App.toast("Please wait a few seconds before sending another"); return; }
+
+    const label = (TYPES.find(t => t[0] === type) || ["", "Feedback"])[1];
+    const lines = ["Type: " + label];
+    if (dish) lines.push("Dish: " + dish);
+    if (msg) lines.push("", msg);
+    if (contact) lines.push("", "Contact: " + contact);
+    lines.push("", "Larder app, " + new Date().toLocaleString() + ", " + navigator.userAgent.slice(0, 120));
+    const item = { id: Date.now() + "-" + Math.random().toString(36).slice(2, 7), type: label, dish, text: lines.join("\n"),
+      subject: "Larder: " + label + (dish ? " - " + dish : " - " + msg.slice(0, 40)) };
+
+    sending = true; $("fb-send").disabled = true; $("fb-send").textContent = "Sending...";
+    const q = readQ(); q.push(item); writeQ(q);
+    await flush();
+    sending = false; $("fb-send").disabled = false; $("fb-send").textContent = "Send";
+    lastSend = Date.now();
+
+    const stillQueued = readQ().some(x => x.id === item.id);
+    App.closeModal("overlay-feedback");
+    $("fb-dish").value = ""; $("fb-msg").value = ""; $("fb-contact").value = "";
+    App.toast(stillQueued ? "Saved. It will send as soon as you're online." : "Thank you! Your message was sent.");
+  };
+
+  /* ---- entry points: sidebar, recipe library, Settings ---- */
+  const nb = document.createElement("button");
+  nb.className = "nav-item"; nb.id = "nav-feedback"; nb.setAttribute("aria-current", "false");
+  nb.innerHTML = '<svg class="ic" aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>' +
+    '<span class="label">Feedback<small>Request a recipe</small></span>';
+  nb.onclick = () => { App.closeSidebar(); openFeedback("recipe"); };
+  document.querySelector("nav.main-nav").appendChild(nb);
+
+  const head = document.querySelector("#panel-planner .section-head");
+  if (head) {
+    const rb = document.createElement("button");
+    rb.className = "btn btn-ghost btn-small"; rb.textContent = "Request a recipe";
+    rb.onclick = () => openFeedback("recipe");
+    head.appendChild(rb);
+  }
+
+  const sec = $("panel-settings");
+  if (sec) {
+    const inject = () => {
+      if ($("fb-card") || !sec.querySelector("#heading-settings")) return;
+      const target = [].slice.call(sec.querySelectorAll(".set-card")).find(c => /Report a bug/.test(c.textContent.slice(0, 60)));
+      const html = '<div class="set-card" id="fb-card"><h2>Feedback &amp; recipe requests</h2>' +
+        '<p class="sub">Want a recipe added, found a problem, or have an idea? Send it right from here.</p>' +
+        '<div class="set-links" style="margin-top:10px;"><button class="btn btn-accent btn-small" data-fb="recipe">Request a recipe</button>' +
+        '<button class="btn btn-ghost btn-small" data-fb="idea">Share an idea</button>' +
+        '<button class="btn btn-ghost btn-small" data-fb="bug">Report a problem</button></div></div>';
+      if (target) target.insertAdjacentHTML("beforebegin", html); else sec.insertAdjacentHTML("beforeend", html);
+    };
+    new MutationObserver(inject).observe(sec, { childList: true });
+    sec.addEventListener("click", e => { const b = e.target.closest("[data-fb]"); if (b) openFeedback(b.dataset.fb); });
+  }
+
+  /* ---- retry anything that could not be sent earlier ---- */
+  addEventListener("online", flush);
+  setTimeout(flush, 2500);
+})();
 App.init();
 </script>
 </body>
