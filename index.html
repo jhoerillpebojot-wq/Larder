@@ -3524,20 +3524,20 @@ App.init();
 
 @media (max-width:880px){
   /* ---- breathing room + bigger touch targets ---- */
-  main.content{padding:18px 16px 120px}
+  main.content{padding:16px 14px 110px}
   .page-head{margin-bottom:18px;gap:14px}
-  .page-head .display{font-size:26px}
+  .page-head .display{font-size:23px}
   .page-head > div > p{display:none}
-  .btn{min-height:48px;font-size:15px;padding:12px 18px;border-radius:10px}
-  .btn-small{min-height:44px;font-size:14px;padding:10px 16px}
-  .filter-chip{min-height:44px;font-size:14px;padding:10px 18px;white-space:nowrap}
+  .btn{min-height:42px;font-size:14px;padding:10px 16px;border-radius:9px}
+  .btn-small{min-height:38px;font-size:13px;padding:8px 14px}
+  .filter-chip{min-height:38px;font-size:13px;padding:8px 14px;white-space:nowrap}
   input,select,textarea{font-size:16px!important}
-  select.day-add,select.add-to-day,select.move-day{min-height:48px;font-size:15px!important}
-  .qty-stepper button{width:44px;height:44px;font-size:18px}
-  .qty-stepper input{min-height:44px}
-  .icon-btn{padding:10px}
-  .icon-btn svg{width:20px;height:20px}
-  input[type="checkbox"]{width:24px;height:24px}
+  select.day-add,select.add-to-day,select.move-day{min-height:42px;font-size:14px!important}
+  .qty-stepper button{width:38px;height:38px;font-size:16px}
+  .qty-stepper input{min-height:38px}
+  .icon-btn{padding:8px}
+  .icon-btn svg{width:18px;height:18px}
+  input[type="checkbox"]{width:20px;height:20px}
 
   /* filters become ONE scrolling row instead of wrapping into a pile */
   .filter-row{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;margin-right:-16px;padding-right:16px;scrollbar-width:none}
@@ -3545,16 +3545,16 @@ App.init();
   /* short rows (2-5 choices) wrap so every option is visible without scrolling */
   #panel-whatcancook .filter-row,.set-row .filter-row,.modal-box .filter-row,#inst-tabs,#fb-types{flex-wrap:wrap;overflow:visible;margin-right:0;padding-right:0}
   .search-wrap{width:100%;margin:0!important}
-  .search-input{min-height:48px}
+  .search-input{min-height:42px}
 
   /* ---- top bar: Install + Settings, so the bottom bar stays at 5 tabs ---- */
   .mobile-topbar .tb-right{display:flex;align-items:center;gap:8px;width:auto!important}
-  .tb-install{background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;font-weight:700;font-size:13px;padding:0 14px;height:40px;cursor:pointer}
-  .tb-gear{background:none;border:1px solid var(--border-hairline);border-radius:8px;width:40px;height:40px;color:var(--text-primary);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
-  .tb-gear svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8}
+  .tb-install{background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;font-weight:700;font-size:12.5px;padding:0 13px;height:36px;cursor:pointer}
+  .tb-gear{background:none;border:1px solid var(--border-hairline);border-radius:8px;width:36px;height:36px;color:var(--text-primary);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+  .tb-gear svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.8}
   #bn-settings{display:none}
-  .bottom-nav button{min-height:56px;font-size:11px}
-  .bottom-nav button svg{width:24px;height:24px}
+  .bottom-nav button{min-height:50px;font-size:10.5px}
+  .bottom-nav button svg{width:22px;height:22px}
 
   /* ---- planner: two clear actions, cart is already in the bottom bar ---- */
   #panel-planner .actions{display:flex;gap:10px;width:100%}
@@ -3565,56 +3565,56 @@ App.init();
   .suggest-band{padding:16px}
   .suggest-band .sub{display:none}
   .suggest-card{width:230px}
-  .day-col{padding:14px;gap:12px;border-radius:12px}
-  .meal-chip{padding:14px 14px 12px}
-  .meal-chip .m-title{font-size:15px;padding-right:48px}
+  .day-col{padding:12px;gap:10px;border-radius:10px}
+  .meal-chip{padding:12px 12px 10px}
+  .meal-chip .m-title{font-size:14px;padding-right:44px}
   .meal-chip .remove-x{top:4px;right:2px}
   .meal-chip .m-meta{font-size:12.5px}
-  .chip-more{display:inline-flex;position:absolute;right:6px;bottom:6px;background:none;border:1px solid var(--border-hairline);border-radius:8px;color:var(--text-secondary);width:42px;height:36px;font-size:18px;line-height:1;align-items:center;justify-content:center;cursor:pointer}
+  .chip-more{display:inline-flex;position:absolute;right:6px;bottom:6px;background:none;border:1px solid var(--border-hairline);border-radius:8px;color:var(--text-secondary);width:38px;height:32px;font-size:16px;line-height:1;align-items:center;justify-content:center;cursor:pointer}
   .meal-chip .move-day,.meal-chip button.m-meta{display:none}
   .meal-chip.show-tools .move-day{display:block}
   .meal-chip.show-tools button.m-meta{display:inline-flex;margin-top:8px;min-height:36px;font-size:13px}
 
   /* ---- recipe cards: just the essentials ---- */
-  .recipe-card{padding:18px;gap:12px}
+  .recipe-card{padding:15px;gap:10px}
   .recipe-card .ing-preview,.recipe-card .nutrition-line,.meta-chip.spice{display:none}
-  .recipe-card h3.title-btn{font-size:18px}
+  .recipe-card h3.title-btn{font-size:16px}
 
   /* ---- pantry: Add item becomes a floating button, the rest stays quiet ---- */
   #panel-pantry .actions{display:flex;flex-direction:column;gap:10px;width:100%}
   #panel-pantry .actions .more-menu{display:none}
   #panel-pantry .actions .btn-ghost{width:100%;justify-content:center}
-  #panel-pantry .actions .btn-accent{position:fixed;right:16px;bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:37;border-radius:999px;padding:0 22px;min-height:54px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
-  .pantry-item{padding:18px;gap:14px}
+  #panel-pantry .actions .btn-accent{position:fixed;right:16px;bottom:calc(82px + env(safe-area-inset-bottom,0px));z-index:37;border-radius:999px;padding:0 18px;min-height:46px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+  .pantry-item{padding:15px;gap:12px}
   .pantry-item .foot-row .store-tag{display:none}
   .pantry-item .foot-row{justify-content:flex-end}
 
   /* ---- cart: each item is a roomy card ---- */
   .cart-summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .summary-card{min-width:0;padding:12px}
-  .summary-card .num{font-size:22px}
+  .summary-card .num{font-size:20px}
   .cart-toolbar{justify-content:stretch}
   .cart-toolbar .btn{flex:1;justify-content:center}
   .cart-toolbar .btn:nth-child(2){display:none}
   .add-custom-row{padding:16px}
   table.cart-table{background:none!important;border:0!important}
   table.cart-table caption{display:none}
-  #cart-table tbody tr{display:grid!important;grid-template-columns:48px 1fr auto;align-items:center;gap:2px 8px;background:var(--bg-panel);border:1px solid var(--border-hairline-soft)!important;border-radius:14px;margin-bottom:12px;padding:12px 10px}
+  #cart-table tbody tr{display:grid!important;grid-template-columns:40px 1fr auto;align-items:center;gap:2px 8px;background:var(--bg-panel);border:1px solid var(--border-hairline-soft)!important;border-radius:12px;margin-bottom:10px;padding:10px 8px}
   #cart-table tbody td{padding:4px 6px!important;width:auto!important}
   #cart-table .mobile-label{display:none}
   #cart-table td:nth-child(1){grid-area:1/1}
-  #cart-table td:nth-child(2){grid-area:1/2/2/4;font-size:16px}
+  #cart-table td:nth-child(2){grid-area:1/2/2/4;font-size:15px}
   #cart-table td:nth-child(3){grid-area:2/2}
   #cart-table td:nth-child(4){grid-area:2/3;color:var(--text-secondary)}
   #cart-table td:nth-child(5){grid-area:3/1/4/4}
   #cart-table .cart-actions-cell{justify-content:space-between;margin-top:6px}
-  .cart-qty-input{width:100%;min-height:44px}
+  .cart-qty-input{width:100%;min-height:38px}
 
   /* ---- install nudge card ---- */
-  #nudge{position:fixed;left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:66;background:var(--bg-card);border:1px solid var(--accent);border-radius:16px;padding:16px;box-shadow:0 12px 32px rgba(0,0,0,.45);flex-direction:column;gap:12px;transform:translateY(24px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
+  #nudge{position:fixed;left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:66;background:var(--bg-card);border:1px solid var(--accent);border-radius:14px;padding:14px;box-shadow:0 12px 32px rgba(0,0,0,.45);flex-direction:column;gap:12px;transform:translateY(24px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
   #nudge.show{display:flex;opacity:1;transform:none;pointer-events:auto}
-  #nudge .nd-txt b{display:block;font-size:16px;margin-bottom:2px}
-  #nudge .nd-txt span{font-size:13.5px;color:var(--text-secondary)}
+  #nudge .nd-txt b{display:block;font-size:15px;margin-bottom:2px}
+  #nudge .nd-txt span{font-size:12.5px;color:var(--text-secondary)}
   #nudge .nd-btns{display:flex;gap:10px}
   #nudge .nd-btns .btn{flex:1;justify-content:center}
 }
