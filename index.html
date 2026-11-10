@@ -1,9 +1,178 @@
 <!-- ============================================================
-  LARDER INSTALL + OFFLINE ADD-ON — paste right before </body>,
-  after the other two blocks. Needs sw.js, manifest.webmanifest and the
-  three icon-*.png files saved next to your index.html (see notes).
+  LARDER ALL-IN-ONE ADD-ON  (UI upgrade + Settings + Install/offline)
+  Paste this whole file right before </body> of your FULL Larder
+  index.html, after your existing app </script>. Nothing else changes.
+  Order inside matters: 1) UI upgrade  2) Settings  3) Install/offline.
+  Needs sw.js, manifest.webmanifest and icon-192.png, icon-512.png,
+  icon-maskable-512.png saved next to index.html.
   ============================================================ -->
 <style>
+/* =====================================================================
+   1) UI UPGRADE
+   ===================================================================== */
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body, .shell { min-height: 100dvh; }
+.sidebar { height: 100dvh; }
+img, svg { max-width: 100%; }
+h1, h2, h3, h4, .display, .m-title, .title-btn, .nav-item .label { overflow-wrap: anywhere; }
+.modal-open, .modal-open body { overflow: hidden; }
+.btn { transition: transform .08s ease, background .15s ease; }
+.btn:active { transform: scale(.97); }
+@media (hover: hover) {
+  .recipe-card, .pantry-item { transition: transform .15s ease, border-color .15s ease; }
+  .recipe-card:hover, .pantry-item:hover { transform: translateY(-2px); border-color: var(--border-hairline); }
+}
+
+/* Fix overlaps */
+.page-head > div:first-child { min-width: 0; flex: 1 1 320px; }
+.recipe-card .title-line { min-width: 0; flex: 1; }
+.recipe-card .r-photo { flex: none; }
+.pantry-item-top > div:first-child { min-width: 0; flex: 1; }
+.badge-stack { flex: none; max-width: 48%; }
+.badge { font-size: 10.5px; padding: 3px 9px; }
+.lowstock-line .ls-name { flex-wrap: wrap; min-width: 0; }
+.meal-chip { padding: 10px 40px 10px 11px; }
+.meal-chip .m-title { padding-right: 0; }
+.meal-chip .remove-x { top: 4px; right: 4px; width: 32px; height: 32px; align-items: center; justify-content: center; }
+.move-day { display: none; width: 100%; margin-top: 8px; background: var(--bg-app); color: var(--text-secondary);
+  border: 1px solid var(--border-hairline); border-radius: 6px; padding: 8px; font-size: 12px; }
+.mini-stats { display: none; }
+.mobile-topbar .display { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hamburger-btn { min-width: 88px; }
+.mobile-topbar > span[style] { width: 88px !important; }
+
+/* Weekly planner: no more sideways dragging */
+.week-scroll { overflow: visible; }
+.week-grid { min-width: 0; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (min-width: 1500px) { .week-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+
+/* Tablet */
+@media (min-width: 881px) and (max-width: 1180px) {
+  .shell { grid-template-columns: 216px 1fr; }
+  .sidebar { padding: 24px 14px; }
+  main.content { padding: 30px 26px 60px; }
+}
+
+/* Phones & small tablets */
+@media (max-width: 880px) {
+  .sidebar { width: min(86vw, 320px); }
+  input, select, textarea { font-size: 16px !important; }
+  .week-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .day-col.today { order: -1; grid-column: 1 / -1; border-color: var(--accent); }
+  .move-day { display: block; }
+
+  .page-head .actions { width: 100%; }
+  .page-head .actions > .btn, .page-head .actions > .more-menu { flex: 1 1 auto; justify-content: center; }
+  .more-menu summary { justify-content: center; }
+  .more-pop { position: fixed; left: 16px; right: 16px; top: auto; bottom: calc(78px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+    box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+
+  .mini-stats { display: flex; gap: 8px; overflow-x: auto; margin: -14px 0 18px; padding-bottom: 2px; scrollbar-width: none; }
+  .mini-stats span { flex: none; background: var(--bg-panel); border: 1px solid var(--border-hairline-soft);
+    border-radius: 999px; padding: 6px 12px; font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
+  .mini-stats b { color: var(--text-primary); font-weight: 600; }
+
+  .section-head .search-wrap, .filter-row .search-wrap { flex: 1 1 100%; margin-left: 0 !important; }
+  .search-input { width: 100%; }
+  .filter-row:not(:has(.search-wrap)) { flex-wrap: nowrap; overflow-x: auto; scroll-snap-type: x proximity;
+    margin-inline: -14px; padding-inline: 14px; scrollbar-width: none; }
+  .filter-chip { flex: none; white-space: nowrap; scroll-snap-align: start; }
+  .suggest-row { scroll-snap-type: x mandatory; }
+  .suggest-card { scroll-snap-align: start; }
+
+  /* cart rows become cards */
+  table.cart-table { background: none; border: 0; }
+  table.cart-table caption { padding: 0 2px 12px; }
+  table.cart-table tbody tr { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 12px; align-items: center;
+    background: var(--bg-panel); border: 1px solid var(--border-hairline-soft); border-radius: 10px; margin-bottom: 10px; padding: 12px; }
+  table.cart-table td { padding: 0 !important; width: auto; }
+  table.cart-table td:nth-child(1) .mobile-label { display: none; }
+  table.cart-table td:nth-child(2) { grid-column: 2 / -1; }
+  table.cart-table td:nth-child(3) { grid-column: 1 / 3; }
+  table.cart-table td:nth-child(4) { grid-column: 3; }
+  table.cart-table td:nth-child(5), table.cart-table td[colspan] { grid-column: 1 / -1; }
+  .cart-actions-cell { justify-content: stretch; }
+  .cart-actions-cell .btn { flex: 1; justify-content: center; }
+  .cart-qty-input { width: 100%; }
+  .cart-summary-row .summary-card { flex: 1 1 90px; min-width: 0; padding: 12px 14px; }
+
+  /* cook mode = full-screen, big text */
+  #overlay-cookmode { padding: 0; }
+  #overlay-cookmode .modal-box { height: 100dvh; max-height: none; max-width: none; border-radius: 0; border: 0; display: flex; flex-direction: column;
+    padding: calc(18px + env(safe-area-inset-top, 0px)) 18px calc(18px + env(safe-area-inset-bottom, 0px)); }
+  #overlay-cookmode .cookmode-step-text { font-size: 21px; flex: 1; overflow-y: auto; }
+  #overlay-cookmode .modal-actions .btn { min-height: 52px; }
+}
+
+/* Phones: modals become bottom sheets */
+@media (max-width: 640px) {
+  .modal-overlay:not(#overlay-cookmode) { align-items: flex-end; padding: 0; }
+  .modal-overlay:not(#overlay-cookmode) .modal-box { max-width: none; max-height: 92dvh; border-radius: 16px 16px 0 0;
+    padding: 20px 18px calc(20px + env(safe-area-inset-bottom, 0px)); animation: sheetUp .22s ease; }
+  .modal-actions .btn { flex: 1; justify-content: center; }
+  .week-grid { grid-template-columns: 1fr; }
+  .cart-toolbar { justify-content: stretch; }
+  .cart-toolbar .btn { flex: 1; justify-content: center; }
+}
+@keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (max-width: 360px) {
+  main.content { padding: 16px 12px 60px; }
+  .page-head .display { font-size: 22px; }
+  .bottom-nav button { font-size: 9.5px; }
+}
+.bottom-nav button { min-width: 0; }
+.bottom-nav button span:not(.count-pill) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-height: 480px) and (orientation: landscape) {
+  .bottom-nav button span:not(.count-pill) { display: none; }
+  body { padding-top: calc(54px + env(safe-area-inset-top, 0px)); }
+}
+
+/* Touch comfort */
+@media (pointer: coarse) {
+  .btn-small { min-height: 40px; }
+  .icon-btn { min-width: 40px; min-height: 40px; align-items: center; justify-content: center; }
+  .qty-stepper button { width: 42px; height: 42px; }
+  .qty-stepper input, .cart-qty-input { height: 42px; }
+  .filter-chip { min-height: 40px; }
+  input[type="checkbox"] { width: 22px; height: 22px; }
+  select.day-add, select.add-to-day { min-height: 42px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .modal-box { animation: none !important; } }
+
+/* =====================================================================
+   2) SETTINGS
+   ===================================================================== */
+html[data-theme="light"]{--bg-app:#F7F4EB;--bg-panel:#FFFFFF;--bg-card:#F2EEE1;--border-hairline:#D9D2BD;--border-hairline-soft:#E6E0CD;
+  --text-primary:#26301F;--text-secondary:#56604B;--text-faint:#8A9280;--fresh:#3F7A2E;--fresh-bg:#E3EFD9;--warn:#A9680E;--warn-bg:#F7EAD0;
+  --urgent:#B13A28;--urgent-bg:#F6DDD7;--info:#2F6F94;--info-bg:#DCEAF2;color-scheme:light}
+.btn-accent:hover{background:var(--accent);filter:brightness(1.1)}
+main.content{zoom:var(--zoom,1)}
+html.sans-head h1,html.sans-head h2,html.sans-head h3,html.sans-head h4,html.sans-head .display,html.sans-head .title-btn,
+html.sans-head .m-title,html.sans-head .cookmode-step-text,html.sans-head .cookmode-timer-display,html.sans-head .summary-card .num,
+html.sans-head .section-label{font-family:'Inter',sans-serif!important}
+html.calm *,html.calm *::before,html.calm *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+
+.set-card{background:var(--bg-panel);border:1px solid var(--border-hairline-soft);border-radius:10px;padding:18px 20px;margin-bottom:16px;max-width:760px}
+.set-card>h2{font-size:17px;margin-bottom:2px}
+.set-card>p.sub{color:var(--text-secondary);font-size:13px;margin:2px 0 6px}
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 0;border-top:1px solid var(--border-hairline-soft)}
+.set-row:first-of-type{border-top:0}
+.set-row .lbl{min-width:0;flex:1 1 200px}
+.set-row .lbl b{display:block;font-size:14px;font-weight:600}
+.set-row .lbl small{color:var(--text-faint);font-size:12px;overflow-wrap:anywhere}
+.set-card .filter-row{margin:0!important;padding:0!important;flex-wrap:wrap!important;overflow:visible!important}
+.set-card .field-row{margin:0;flex:1 1 220px}
+.swatches{display:flex;gap:10px;flex-wrap:wrap}
+.swatch{width:38px;height:38px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+.swatch[aria-pressed="true"]{border-color:var(--text-primary);box-shadow:inset 0 0 0 3px var(--bg-panel)}
+.set-links{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:880px){.set-row{flex-direction:column;align-items:stretch}.set-links .btn{flex:1;justify-content:center}}
+
+/* =====================================================================
+   3) INSTALL + OFFLINE
+   ===================================================================== */
 #net-banner{position:fixed;left:50%;top:calc(10px + env(safe-area-inset-top,0px));transform:translate(-50%,-140%);z-index:58;
   background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn);border-radius:999px;padding:9px 18px;font-size:13px;font-weight:600;
   max-width:92vw;text-align:center;transition:transform .25s ease;pointer-events:none}
@@ -25,6 +194,289 @@
 </style>
 
 <script>
+/* =====================================================================
+   1) UI UPGRADE
+   ===================================================================== */
+(function () {
+  /* Safe areas: let the page draw under notches */
+  const vp = document.querySelector('meta[name="viewport"]');
+  if (vp && !/viewport-fit/.test(vp.content)) vp.content += ', viewport-fit=cover';
+  [['theme-color', '#1E2A21'], ['mobile-web-app-capable', 'yes'], ['apple-mobile-web-app-capable', 'yes']].forEach(([n, c]) => {
+    if (!document.querySelector('meta[name="' + n + '"]')) { const m = document.createElement('meta'); m.name = n; m.content = c; document.head.appendChild(m); }
+  });
+
+  /* "Move to…" picker on each planned meal (drag & drop doesn't work on touch screens) */
+  const _rw = App.renderWeek;
+  App.renderWeek = function () {
+    _rw.call(this);
+    document.querySelectorAll('#week-grid .meal-chip').forEach(chip => {
+      const m = (chip.getAttribute('ondrop') || '').match(/chipDrop\(event,'(\w+)',(\d+)\)/);
+      if (!m) return;
+      const day = m[1], idx = +m[2];
+      const sel = document.createElement('select');
+      sel.className = 'move-day';
+      sel.setAttribute('aria-label', 'Move this meal to another day');
+      sel.innerHTML = '<option value="">Move to…</option>' + DAYS.filter(d => d !== day).map(d => `<option value="${d}">${DAY_FULL[d]}</option>`).join('');
+      sel.onchange = () => {
+        const to = sel.value; if (!to) return;
+        const rid = weekPlan[day].splice(idx, 1)[0];
+        if (rid != null) weekPlan[to].push(rid);
+        App.afterPlanChange('Moved to ' + DAY_FULL[to]);
+      };
+      chip.appendChild(sel);
+    });
+  };
+
+  /* Phone-only "this week" strip */
+  const head = document.querySelector('#panel-planner .page-head');
+  const mini = document.createElement('div');
+  mini.className = 'mini-stats'; mini.id = 'mini-stats';
+  head.insertAdjacentElement('afterend', mini);
+  const syncMini = () => {
+    const t = id => (document.getElementById(id) || {}).textContent || '–';
+    mini.innerHTML = `<span>Planned <b>${t('stat-planned')}</b></span><span>To buy <b>${t('stat-missing')}</b></span><span>Expiring <b>${t('stat-expiring')}</b></span><span>Low <b>${t('stat-lowstock')}</b></span>`;
+  };
+  const _rs = App.renderStats;
+  App.renderStats = function () { _rs.call(this); syncMini(); };
+
+  /* Lock page scroll behind open dialogs */
+  const _om = App.openModal, _cm = App.closeModal;
+  App.openModal = function (id) { _om.call(this, id); document.documentElement.classList.add('modal-open'); };
+  App.closeModal = function (id) {
+    _cm.call(this, id);
+    if (!document.querySelector('.modal-overlay.open')) document.documentElement.classList.remove('modal-open');
+  };
+
+  /* Cook mode: keep the screen awake, swipe between steps, buzz when a timer ends */
+  let wl = null;
+  const lock = async () => { try { if ('wakeLock' in navigator) wl = await navigator.wakeLock.request('screen'); } catch (e) {} };
+  const unlock = () => { try { wl && wl.release(); } catch (e) {} wl = null; };
+  const _b = App.beginCookMode, _x = App.exitCookMode, _f = App.finishCooking;
+  App.beginCookMode = function () { _b.call(this); if (document.getElementById('overlay-cookmode').classList.contains('open')) lock(); };
+  App.exitCookMode = function () { _x.call(this); unlock(); };
+  App.finishCooking = function () { _f.call(this); unlock(); };
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && document.getElementById('overlay-cookmode').classList.contains('open')) lock();
+  });
+  const cm = document.getElementById('overlay-cookmode'); let sx = null;
+  cm.addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+  cm.addEventListener('touchend', e => {
+    if (sx == null) return;
+    const dx = e.changedTouches[0].clientX - sx; sx = null;
+    if (Math.abs(dx) < 70) return;
+    if (dx < 0) { if (cookModeIndex < cookModeSteps.length - 1) App.cookModeNext(); } else App.cookModePrev();
+  }, { passive: true });
+  const _t = App.toast;
+  App.toast = function (msg) {
+    _t.call(this, msg);
+    if (/Timer done/.test(msg) && navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+  };
+
+  /* Small conveniences */
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.more-menu')) document.querySelectorAll('.more-menu[open]').forEach(d => { d.open = false; });
+  });
+  window.addEventListener('resize', () => { if (window.innerWidth > 880) App.closeSidebar(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') App.closeSidebar(); });
+
+  App.renderWeek(); App.renderStats();
+})();
+
+/* =====================================================================
+   2) SETTINGS
+   ===================================================================== */
+(function () {
+  const PK = "larder.prefs";
+  const DEF = { theme: "dark", accent: "#E3B23C", scale: 1, heading: "serif", week: "mon", landing: "planner", name: "Larder", motion: true, vibrate: true, sound: true, awake: true };
+  const prefs = Object.assign({}, DEF);
+  try { Object.assign(prefs, JSON.parse(localStorage.getItem(PK) || "{}")); } catch (e) {}
+  const store = () => { try { localStorage.setItem(PK, JSON.stringify(prefs)); } catch (e) {} };
+  const $ = id => document.getElementById(id);
+
+  /* ---- apply preferences to the page ---- */
+  function apply() {
+    const r = document.documentElement;
+    const light = prefs.theme === "light" || (prefs.theme === "auto" && matchMedia("(prefers-color-scheme: light)").matches);
+    r.setAttribute("data-theme", light ? "light" : "dark");
+    r.style.setProperty("--accent", prefs.accent);
+    r.style.setProperty("--zoom", prefs.scale);
+    r.classList.toggle("sans-head", prefs.heading === "sans");
+    r.classList.toggle("calm", !prefs.motion);
+    const wm = document.querySelector(".wordmark .display"); if (wm) wm.textContent = prefs.name || "Larder";
+    let tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.content = light ? "#F7F4EB" : "#1E2A21";
+    const order = prefs.week === "sun" ? ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"] : ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    if (DAYS.join() !== order.join()) { DAYS.splice(0, 7, ...order); App.renderAll(); }
+  }
+
+  /* ---- navigation entries ---- */
+  const gear = '<svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>';
+  const nb = document.createElement("button");
+  nb.className = "nav-item"; nb.id = "nav-settings"; nb.setAttribute("aria-current", "false");
+  nb.onclick = () => App.setView("settings");
+  nb.innerHTML = gear.replace("<svg", '<svg class="ic"') + '<span class="label">Settings<small>Make it yours</small></span>';
+  document.querySelector("nav.main-nav").appendChild(nb);
+  const bb = document.querySelector(".bottom-nav");
+  if (bb) { const b = document.createElement("button"); b.id = "bn-settings"; b.setAttribute("aria-current", "false");
+    b.onclick = () => App.setView("settings"); b.innerHTML = gear + "<span>Settings</span>"; bb.appendChild(b); }
+
+  const sec = document.createElement("section");
+  sec.id = "panel-settings"; sec.className = "view-panel"; sec.setAttribute("aria-labelledby", "heading-settings");
+  document.getElementById("main-content").appendChild(sec);
+
+  const _sv = App.setView;
+  App.setView = function (v) {
+    _sv.call(this, v);
+    document.querySelectorAll(".bottom-nav button").forEach(b => b.setAttribute("aria-current", String(b.id === "bn-" + v)));
+    if (v === "settings") { $("topbar-title").textContent = "Settings"; draw(); }
+  };
+
+  /* ---- settings UI ---- */
+  const chip = (k, v, label) => `<button class="filter-chip" aria-pressed="${String(prefs[k]) === String(v)}" data-pref="${k}" data-val="${v}">${label}</button>`;
+  const onoff = k => chip(k, true, "On") + chip(k, false, "Off");
+  const row = (t, s, ctl) => `<div class="set-row"><div class="lbl"><b>${t}</b><small>${s}</small></div>${ctl}</div>`;
+  const copyBtn = (v, l) => `<button class="btn btn-ghost btn-small" data-copy="${v}">${l}</button>`;
+  const SW = [["#E3B23C","Gold"],["#7FB069","Leaf green"],["#E07A5F","Coral"],["#6FA8C9","Sky"],["#B39DDB","Lavender"],["#E58FB0","Rose"]];
+  const mail = "mailto:jhoerillhoyo@gmail.com?subject=" + encodeURIComponent("Larder bug report / feedback") +
+    "&body=" + encodeURIComponent("What happened:\n\n\nWhat I expected:\n\n\n---\nDevice: " + navigator.userAgent);
+  const FB = "https://www.facebook.com/share/19iH3xpGVP/?mibextid=wwXIfr",
+        IG = "https://www.instagram.com/pbjni_?dlrf=eDUyNGVuZTk4N3Vn&amp;utm_source=qr",
+        TT = "https://www.tiktok.com/@pbj_ni";
+  const socials = `<a class="btn btn-ghost btn-small" href="${FB}" target="_blank" rel="noopener noreferrer">Facebook</a>
+    <a class="btn btn-ghost btn-small" href="${IG}" target="_blank" rel="noopener noreferrer">Instagram</a>
+    <a class="btn btn-ghost btn-small" href="${TT}" target="_blank" rel="noopener noreferrer">TikTok</a>`;
+
+  function draw() {
+    const y = window.scrollY;
+    sec.innerHTML = `
+    <div class="page-head"><div><h1 class="display" id="heading-settings" tabindex="-1">Settings</h1>
+      <p>Make Larder look and work the way your kitchen does. Everything is saved on this device.</p></div></div>
+
+    <div class="set-card"><h2>Look &amp; feel</h2>
+      ${row("Kitchen name", "Shown at the top of the menu", '<div class="field-row"><label class="visually-hidden" for="pf-name">Kitchen name</label><input type="text" id="pf-name" maxlength="22" placeholder="Larder"></div>')}
+      ${row("Theme", "Dark, light, or follow your device", '<div class="filter-row">' + chip("theme","dark","Dark") + chip("theme","light","Light") + chip("theme","auto","Auto") + "</div>")}
+      ${row("Accent colour", "Buttons, highlights and today's marker", '<div class="swatches">' + SW.map(([c, n]) => `<button class="swatch" style="background:${c}" aria-label="${n}" aria-pressed="${prefs.accent === c}" data-pref="accent" data-val="${c}"></button>`).join("") + "</div>")}
+      ${row("Size", "Make the main content smaller or larger", '<div class="filter-row">' + chip("scale",0.92,"Compact") + chip("scale",1,"Default") + chip("scale",1.1,"Large") + "</div>")}
+      ${row("Heading style", "Classic serif or clean sans", '<div class="filter-row">' + chip("heading","serif","Serif") + chip("heading","sans","Sans") + "</div>")}
+      ${row("Animations", "Turn off for a calmer, faster feel", '<div class="filter-row">' + onoff("motion") + "</div>")}
+    </div>
+
+    <div class="set-card"><h2>Planner</h2>
+      ${row("Week starts on", "Changes the order of days in the planner", '<div class="filter-row">' + chip("week","mon","Monday") + chip("week","sun","Sunday") + "</div>")}
+      ${row("Open Larder on", "The first screen you see", '<div class="filter-row">' + [["planner","Planner"],["whatcancook","Ideas"],["pantry","Pantry"],["cook","Cook"],["cart","Cart"]].map(([v, l]) => chip("landing", v, l)).join("") + "</div>")}
+    </div>
+
+    <div class="set-card"><h2>Cooking</h2>
+      ${row("Timer sound", "A short chime when a step timer ends", '<div class="filter-row">' + onoff("sound") + "</div>")}
+      ${row("Timer vibration", "Phones that support it", '<div class="filter-row">' + onoff("vibrate") + "</div>")}
+      ${row("Keep screen awake", "While you are in step-by-step cooking", '<div class="filter-row">' + onoff("awake") + "</div>")}
+    </div>
+
+    <div class="set-card"><h2>Your data</h2>
+      <p class="sub">Larder keeps everything in this browser. No account, no server.</p>
+      ${row("Backup", "Save your pantry, plan, cart and own recipes to a file", '<div class="set-links"><button class="btn btn-ghost btn-small" data-act="backup">Back up</button><button class="btn btn-ghost btn-small" data-act="restore">Restore</button></div>')}
+      ${row("Clear this week's plan", "Keeps your pantry and recipes", '<button class="btn btn-ghost btn-small" data-act="plan">Clear plan</button>')}
+      ${row("Clear shopping cart", "Removes your own cart items and resets edits", '<button class="btn btn-ghost btn-small" data-act="cart">Clear cart</button>')}
+      ${row("Show the welcome guide again", "The four-step intro on the planner", '<button class="btn btn-ghost btn-small" data-act="guide">Show guide</button>')}
+      ${row("Delete everything", "Pantry, plan, cart, your recipes and settings", '<button class="btn btn-danger-ghost btn-small" data-act="wipe">Delete all data</button>')}
+    </div>
+
+    <div class="set-card"><h2>Report a bug or send feedback</h2>
+      <p class="sub">Found something broken, or have an idea? Tell me. Nothing is sent from the app itself.</p>
+      <div class="set-links" style="margin-top:10px"><a class="btn btn-accent btn-small" href="${mail}">Email a bug report</a>${copyBtn("jhoerillhoyo@gmail.com", "Copy email")}</div>
+      ${row("Call or text", "09272098239", '<div class="set-links"><a class="btn btn-ghost btn-small" href="tel:09272098239">Call</a><a class="btn btn-ghost btn-small" href="sms:09272098239">Text</a></div>')}
+      ${row("Message me online", "Facebook, Instagram or TikTok", '<div class="set-links">' + socials + "</div>")}
+    </div>
+
+    <div class="set-card"><h2>Support the developer</h2>
+      <p class="sub">Larder is free. If it helps your kitchen, a small tip or a follow means a lot. Thank you!</p>
+      ${row("GCash", "09272098239", copyBtn("09272098239", "Copy number"))}
+      ${row("PayPal (email)", "jhoerillpebojot@gmail.com", copyBtn("jhoerillpebojot@gmail.com", "Copy email"))}
+      ${row("PayPal (mobile)", "09272098239", copyBtn("09272098239", "Copy number"))}
+      ${row("Follow and support", "Facebook, Instagram and TikTok", '<div class="set-links">' + socials + "</div>")}
+    </div>`;
+    const n = $("pf-name"); if (n) n.value = prefs.name === "Larder" ? "" : prefs.name;
+    window.scrollTo(0, y);
+  }
+
+  const armed = new WeakMap();
+  const twoStep = (btn, label, fn) => {
+    if (armed.get(btn)) { armed.delete(btn); fn(); return; }
+    const old = btn.textContent; btn.textContent = label; armed.set(btn, true);
+    setTimeout(() => { if (armed.get(btn)) { armed.delete(btn); btn.textContent = old; } }, 4000);
+  };
+
+  sec.addEventListener("click", async e => {
+    const p = e.target.closest("[data-pref]");
+    if (p) {
+      const k = p.dataset.pref, raw = p.dataset.val;
+      prefs[k] = raw === "true" ? true : raw === "false" ? false : (k === "scale" ? Number(raw) : raw);
+      store(); apply(); draw(); return;
+    }
+    const c = e.target.closest("[data-copy]");
+    if (c) {
+      const v = c.dataset.copy; let ok = false;
+      try { await navigator.clipboard.writeText(v); ok = true; } catch (x) {
+        try { const t = document.createElement("textarea"); t.value = v; t.style.cssText = "position:fixed;opacity:0"; document.body.appendChild(t); t.select(); ok = document.execCommand("copy"); t.remove(); } catch (y) {}
+      }
+      App.toast(ok ? "Copied: " + v : "Couldn't copy. Please copy it manually: " + v); return;
+    }
+    const a = e.target.closest("[data-act]"); if (!a) return;
+    const act = a.dataset.act;
+    if (act === "backup") App.exportData();
+    else if (act === "restore") $("import-file").click();
+    else if (act === "guide") { try { localStorage.removeItem("larder.guide"); } catch (x) {} location.reload(); }
+    else if (act === "plan") twoStep(a, "Tap again to clear", () => { DAYS.forEach(d => { weekPlan[d] = []; }); App.afterPlanChange("Plan cleared"); });
+    else if (act === "cart") twoStep(a, "Tap again to clear", () => {
+      cartManual = []; cartChecked = {};
+      App.getCartItems().filter(i => i.source === "auto").forEach(i => { cartOverrides[i.key] = 0; });
+      App.renderCart(); App.renderStats(); App.toast("Cart cleared");
+    });
+    else if (act === "wipe") twoStep(a, "Tap again to delete everything", () => {
+      pantry = []; DAYS.forEach(d => { weekPlan[d] = []; }); cartManual = []; cartOverrides = {}; cartChecked = {};
+      RECIPES = RECIPES.filter(r => !r.custom);
+      ["larder.v1", "larder.guide", PK].forEach(k => { try { localStorage.removeItem(k); } catch (x) {} });
+      Object.assign(prefs, DEF); apply(); App.renderAll(); draw(); App.toast("Everything deleted");
+    });
+  });
+  let nt = null;
+  sec.addEventListener("input", e => {
+    if (e.target.id !== "pf-name") return;
+    prefs.name = e.target.value.trim() || "Larder";
+    const wm = document.querySelector(".wordmark .display"); if (wm) wm.textContent = prefs.name;
+    clearTimeout(nt); nt = setTimeout(store, 300);
+  });
+
+  /* ---- timer chime, and honour the cooking switches ---- */
+  let ac = null;
+  document.addEventListener("click", () => {
+    try { if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === "suspended") ac.resume(); } catch (e) {}
+  });
+  const beep = () => {
+    if (!ac) return;
+    [0, .25, .5].forEach(t => {
+      const o = ac.createOscillator(), g = ac.createGain(), s = ac.currentTime + t;
+      o.frequency.value = 880; g.gain.setValueAtTime(.0001, s); g.gain.exponentialRampToValueAtTime(.15, s + .02); g.gain.exponentialRampToValueAtTime(.0001, s + .2);
+      o.connect(g); g.connect(ac.destination); o.start(s); o.stop(s + .22);
+    });
+  };
+  const _t = App.toast;
+  App.toast = function (m) { _t.call(this, m); if (/Timer done/.test(m) && prefs.sound) beep(); };
+  try {
+    const ov = navigator.vibrate && navigator.vibrate.bind(navigator);
+    if (ov) Object.defineProperty(navigator, "vibrate", { configurable: true, value: p => (prefs.vibrate ? ov(p) : false) });
+  } catch (e) {}
+  try {
+    if (navigator.wakeLock) { const w = navigator.wakeLock, r = w.request.bind(w);
+      w.request = t => (prefs.awake ? r(t) : Promise.reject(new Error("off"))); }
+  } catch (e) {}
+
+  apply();
+  if (prefs.landing !== "planner" && $("panel-" + prefs.landing)) App.setView(prefs.landing);
+})();
+
+/* =====================================================================
+   3) INSTALL + OFFLINE
+   ===================================================================== */
 (function () {
   const $ = id => document.getElementById(id);
   const web = /^https?:$/.test(location.protocol);
@@ -57,7 +509,10 @@
     '<div class="filter-row" id="inst-tabs"></div><ol class="sheet-steps" id="inst-steps"></ol><p class="meta" id="inst-note" style="margin-bottom:16px"></p>' +
     '<div class="modal-actions"><button class="btn btn-accent" id="inst-ok">Okay</button></div></div>';
   document.body.appendChild(ov);
-  const closeGuide = () => ov.classList.remove("open");
+  const closeGuide = () => {
+    ov.classList.remove("open");
+    if (!document.querySelector(".modal-overlay.open")) document.documentElement.classList.remove("modal-open");
+  };
   ov.addEventListener("click", e => { if (e.target === ov) closeGuide(); });
   $("inst-ok").onclick = closeGuide;
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeGuide(); });
@@ -68,7 +523,6 @@
     $("inst-tabs").querySelectorAll("[data-g]").forEach(b => b.onclick = () => drawGuide(b.dataset.g));
   }
   function showGuide() { drawGuide(plat()); ov.classList.add("open"); document.documentElement.classList.add("modal-open"); $("inst-ok").focus(); }
-  const _cg = closeGuide; ov.querySelector("#inst-ok").addEventListener("click", () => { if (!document.querySelector(".modal-overlay.open")) document.documentElement.classList.remove("modal-open"); });
 
   async function install() {
     if (standalone()) { App.toast("You're already using the installed app"); return; }
@@ -118,7 +572,7 @@
     navigator.storage.persist().then(p => { persisted = p; refresh(); }).catch(() => {});
   }
 
-  /* ---- Settings card ---- */
+  /* ---- Settings card (needs the Settings block above) ---- */
   const sec = $("panel-settings");
   function status() {
     if (!web) return ["Not available here", "Offline mode needs the app to be hosted online (https). It can't start when opened as a plain file."];
