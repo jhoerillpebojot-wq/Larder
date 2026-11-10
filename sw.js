@@ -1,6 +1,6 @@
 /* Larder service worker — bump VERSION whenever you change index.html so users get the update. */
-const VERSION = "larder-v1";
-const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
+const VERSION = "larder-v2";
+const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./larder-addons.css", "./larder-addons.js", "./icon-192.png", "./icon-512.png", "./icon-maskable-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => Promise.all(SHELL.map(u => c.add(u).catch(() => {})))));
