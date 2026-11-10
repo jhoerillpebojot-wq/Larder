@@ -3157,7 +3157,208 @@ window.addEventListener("pagehide", () => App.save());
   }
   net();
 })();
+/* =====================================================================
+   4) MODIFY RECIPE / STEPS BEFORE COOKING
+   Paste this block inside the existing <script>, on the line just ABOVE
+   the final  App.init();
+   ===================================================================== */
+(function () {
+  const OK = "larder.overrides";
+  const UNITS = ["g", "kg", "ml", "l", "pcs", "tsp", "tbsp", "cup", "fl_oz"];
+  const $ = id => document.getElementById(id);
+  const clone = x => JSON.parse(JSON.stringify(x));
+  const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+  const recipe = id => RECIPES.find(r => r.id === id);
 
+  let OVR = {};                 // saved modifications: { recipeId: { ingredients, instructions } }
+  try { OVR = JSON.parse(localStorage.getItem(OK) || "{}") || {}; } catch (e) { OVR = {}; }
+  const persist = () => { try { localStorage.setItem(OK, JSON.stringify(OVR)); } catch (e) {} };
+
+  /* ---- apply / revert a saved modification on the live recipe ---- */
+  function applyOne(id) {
+    const r = recipe(id), o = OVR[id]; if (!r || !o) return;
+    if (!r._orig) r._orig = clone({ ingredients: r.ingredients, instructions: r.instructions || [] });
+    r.ingredients = clone(o.ingredients); r.instructions = clone(o.instructions);
+  }
+  function revertOne(id) {
+    const r = recipe(id);
+    if (r && r._orig) { r.ingredients = clone(r._orig.ingredients); r.instructions = clone(r._orig.instructions); delete r._orig; }
+  }
+  const revertAll = () => RECIPES.forEach(r => { if (r._orig) revertOne(r.id); });
+
+  /* ---- cooking the original while a modified version is saved ---- */
+  let session = null, starting = false, cur = null, edit = null;
+  function useOriginal(id) {
+    endSession();
+    const r = recipe(id); if (!r || !r._orig) return;
+    session = { id, ing: r.ingredients, steps: r.instructions };
+    r.ingredients = clone(r._orig.ingredients); r.instructions = clone(r._orig.instructions);
+  }
+  function endSession() {
+    if (!session) return;
+    const r = recipe(session.id);
+    if (r) { r.ingredients = session.ing; r.instructions = session.steps; }
+    session = null;
+  }
+
+  /* ---- styles + dialogs ---- */
+  const st = document.createElement("style");
+  st.textContent = ".cc-opt{flex-direction:column;align-items:flex-start;white-space:normal;text-align:left;width:100%;gap:2px;justify-content:center}" +
+    ".cc-opt small{font-weight:400;color:var(--text-secondary);font-size:12.5px}" +
+    ".cc-opt.btn-accent small{color:var(--accent-ink);opacity:.8}";
+  document.head.appendChild(st);
+
+  document.body.insertAdjacentHTML("beforeend",
+    '<div class="modal-overlay" id="overlay-cookchoice" role="dialog" aria-modal="true" aria-labelledby="cc-title">' +
+      '<div class="modal-box"><div class="display" id="cc-title">How do you want to cook this?</div>' +
+      '<p class="meta" id="cc-sub"></p>' +
+      '<div id="cc-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>' +
+      '<div class="modal-actions"><button class="btn btn-ghost" id="cc-cancel">Cancel</button></div></div></div>' +
+    '<div class="modal-overlay" id="overlay-modify" role="dialog" aria-modal="true" aria-labelledby="mod-title">' +
+      '<div class="modal-box modal-wide"><div class="display" id="mod-title">Modify recipe</div>' +
+      '<p class="meta" id="mod-sub"></p>' +
+      '<div class="field-row"><span class="field-label">Ingredients</span><div id="mod-rows"></div>' +
+      '<button type="button" class="btn btn-ghost btn-small" id="mod-add" style="align-self:flex-start;">+ Add ingredient</button></div>' +
+      '<div class="field-row"><label class="field-label" for="mod-steps">Steps (one per line)</label>' +
+      '<textarea id="mod-steps" style="min-height:220px;"></textarea>' +
+      '<span class="field-hint">Mention "N minutes" in a step and cook mode will suggest a timer for it.</span></div>' +
+      '<div class="modal-actions spread"><button class="btn btn-danger-ghost" id="mod-reset">Reset to original</button>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap;"><button class="btn btn-ghost" id="mod-cancel">Cancel</button>' +
+      '<button class="btn btn-ghost" id="mod-save">Save changes</button>' +
+      '<button class="btn btn-accent" id="mod-cook">Save &amp; cook</button></div></div></div></div>');
+
+  /* ---- the choice shown before cooking ---- */
+  function opt(id, cls, title, sub) {
+    return '<button class="btn ' + cls + ' cc-opt" id="' + id + '"><strong>' + title + '</strong><small>' + sub + '</small></button>';
+  }
+  function askChoice(ctx) {
+    const r = recipe(ctx.rid); if (!r) return;
+    cur = ctx;
+    const mod = !!OVR[r.id];
+    $("cc-title").textContent = "How do you want to cook " + r.name + "?";
+    $("cc-sub").textContent = mod ? "You saved your own version of this recipe." : "Change the ingredients or steps first, or cook it as written.";
+    $("cc-list").innerHTML =
+      (mod ? opt("cc-mine", "btn-accent", "Cook my modified version", "Uses the ingredients and steps you saved") : "") +
+      opt("cc-edit", mod ? "btn-ghost" : "btn-accent", mod ? "Edit my changes" : "Modify recipe / steps", "Change ingredients and steps. Your changes are saved for next time") +
+      opt("cc-orig", "btn-ghost", "Cook original recipe", mod ? "Ignore my changes for this time only" : "Cook it exactly as written");
+    if (mod) $("cc-mine").onclick = () => { App.closeModal("overlay-cookchoice"); cur.go(); };
+    $("cc-edit").onclick = () => { App.closeModal("overlay-cookchoice"); openEditor(cur); };
+    $("cc-orig").onclick = () => { App.closeModal("overlay-cookchoice"); if (mod) useOriginal(cur.rid); cur.go(); };
+    App.openModal("overlay-cookchoice");
+  }
+  $("cc-cancel").onclick = () => App.closeModal("overlay-cookchoice");
+
+  /* ---- the editor ---- */
+  function row(ing) {
+    const w = document.createElement("div"); w.className = "ingredient-row-builder";
+    const units = (!ing.unit || UNITS.indexOf(ing.unit) > -1) ? UNITS : UNITS.concat(ing.unit);
+    w.innerHTML = '<input type="text" aria-label="Ingredient name" placeholder="Ingredient name" value="' + esc(ing.name) + '">' +
+      '<input type="number" aria-label="Quantity" min="0" step="any" placeholder="Qty" value="' + esc(ing.qty) + '">' +
+      '<select aria-label="Unit">' + units.map(u => '<option' + (u === ing.unit ? " selected" : "") + '>' + esc(u) + '</option>').join("") + '</select>' +
+      '<button type="button" class="icon-btn" aria-label="Remove ingredient">' + ICONS.trash + '</button>';
+    w.querySelector("button").onclick = () => w.remove();
+    $("mod-rows").appendChild(w);
+  }
+  function openEditor(ctx) {
+    endSession();
+    const r = recipe(ctx.rid); if (!r) return;
+    edit = ctx;
+    $("mod-title").textContent = "Modify " + r.name;
+    $("mod-sub").textContent = OVR[r.id]
+      ? "You are editing your saved version. It is used whenever you plan, shop for or cook this recipe."
+      : "Change what you need. Your version is saved and used whenever you plan, shop for or cook this recipe. The original stays available.";
+    $("mod-rows").innerHTML = "";
+    r.ingredients.forEach(row);
+    $("mod-steps").value = (r.instructions || []).join("\n");
+    $("mod-reset").style.display = OVR[r.id] ? "" : "none";
+    $("mod-cook").style.display = ctx.go ? "" : "none";
+    App.openModal("overlay-modify");
+  }
+  function collect() {
+    const ingredients = Array.prototype.map.call(document.querySelectorAll("#mod-rows .ingredient-row-builder"), w => {
+      const i = w.querySelectorAll("input");
+      return { name: i[0].value.trim(), qty: parseFloat(i[1].value), unit: w.querySelector("select").value };
+    }).filter(x => x.name && x.qty > 0);
+    const instructions = $("mod-steps").value.split("\n").map(s => s.trim()).filter(Boolean);
+    return { ingredients, instructions };
+  }
+  function refresh(msg) {
+    App.renderLibrary(); App.renderSuggestions(); App.afterPlanChange(msg); App.save();
+  }
+  function save(andCook) {
+    const id = edit.rid, r = recipe(id), d = collect();
+    if (!d.ingredients.length) { App.toast("Keep at least one ingredient with a quantity"); return; }
+    if (!d.instructions.length) { App.toast("Keep at least one step"); return; }
+    const base = r._orig || { ingredients: r.ingredients, instructions: r.instructions || [] };
+    if (JSON.stringify(d) === JSON.stringify(clone({ ingredients: base.ingredients, instructions: base.instructions }))) {
+      delete OVR[id]; revertOne(id);
+    } else {
+      OVR[id] = d; applyOne(id);
+    }
+    persist();
+    App.closeModal("overlay-modify");
+    refresh(OVR[id] ? "Your version of " + r.name + " is saved" : "Same as the original");
+    if (andCook && edit.go) edit.go();
+  }
+  $("mod-add").onclick = () => row({ name: "", qty: "", unit: "g" });
+  $("mod-cancel").onclick = () => App.closeModal("overlay-modify");
+  $("mod-save").onclick = () => save(false);
+  $("mod-cook").onclick = () => save(true);
+  $("mod-reset").onclick = () => {
+    const id = edit.rid; delete OVR[id]; revertOne(id); persist();
+    App.closeModal("overlay-modify"); refresh("Back to the original recipe");
+  };
+
+  /* ---- hook into the existing cook buttons ---- */
+  const _ocm = App.openCookModal, _scw = App.startCookFromWcc;
+  App.openCookModal = function (day, rid) { askChoice({ rid, go: () => _ocm.call(App, day, rid) }); };
+  App.startCookFromWcc = function (rid) { askChoice({ rid, go: () => _scw.call(App, rid) }); };
+
+  const _bcm = App.beginCookMode;
+  App.beginCookMode = function () { starting = true; try { _bcm.call(this); } finally { starting = false; } };
+
+  const _cm = App.closeModal;
+  App.closeModal = function (id) {
+    _cm.call(this, id);
+    if (id === "overlay-cookmode" || (id === "overlay-cook" && !starting)) endSession();
+  };
+
+  /* ---- "Edit recipe / steps" + "Your version" tag in the recipe window ---- */
+  const actions = document.querySelector("#overlay-recipe-detail .modal-actions");
+  const editBtn = document.createElement("button");
+  editBtn.className = "btn btn-ghost"; editBtn.textContent = "Edit recipe / steps";
+  editBtn.onclick = () => { const id = App.currentDetailRecipeId; App.closeModal("overlay-recipe-detail"); openEditor({ rid: id, go: null }); };
+  actions.insertBefore(editBtn, actions.lastElementChild);
+  const _ord = App.openRecipeDetail;
+  App.openRecipeDetail = function (rid) {
+    _ord.call(this, rid);
+    if (OVR[rid]) $("detail-meta-chips").insertAdjacentHTML("beforeend", '<span class="meta-chip dietary">Your version</span>');
+  };
+
+  /* ---- keep it in backups, and clear it when everything is deleted ---- */
+  const _save = App.save;
+  App.save = function () {
+    _save.call(this);
+    try {
+      const d = JSON.parse(localStorage.getItem("larder.v1") || "null");
+      if (d) { d.recipeOverrides = OVR; localStorage.setItem("larder.v1", JSON.stringify(d)); }
+    } catch (e) {}
+  };
+  const _load = App.load;
+  App.load = function (raw) {
+    const ok = _load.call(this, raw);
+    if (raw && raw.recipeOverrides) { revertAll(); OVR = raw.recipeOverrides; persist(); }
+    Object.keys(OVR).forEach(applyOne);
+    return ok;
+  };
+  const _ri = Storage.prototype.removeItem;
+  Storage.prototype.removeItem = function (k) {
+    if (k === "larder.v1") { revertAll(); OVR = {}; persist(); }
+    return _ri.apply(this, arguments);
+  };
+
+  Object.keys(OVR).forEach(applyOne);
+})();
 App.init();
 </script>
 </body>
