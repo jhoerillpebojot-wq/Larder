@@ -3691,5 +3691,101 @@ App.init();
   });
 })();
 </script>
+  <!-- ===== LARDER STEPS EDITOR PATCH: paste right before </body>, after your other patches ===== -->
+<style>
+.step-row{display:flex;gap:8px;align-items:flex-start;margin-bottom:10px}
+.step-n{flex:none;width:26px;height:26px;margin-top:8px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.step-main{flex:1;min-width:0}
+.step-main textarea{width:100%;min-height:64px;resize:none;overflow:hidden;background:var(--bg-card);border:1px solid var(--border-hairline);border-radius:8px;padding:10px 11px;color:var(--text-primary);font-size:15px;line-height:1.45;font-family:inherit}
+.step-timer{font-size:11.5px;color:var(--accent);margin-top:4px;min-height:0}
+.step-tools{display:flex;flex-direction:column;gap:4px}
+.step-tools button{background:var(--bg-card);border:1px solid var(--border-hairline);color:var(--text-secondary);border-radius:6px;width:34px;height:30px;cursor:pointer;font-size:14px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.step-tools button:disabled{opacity:.35;cursor:default}
+.step-tools .del:hover{color:var(--urgent)}
+</style>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const ov = $('overlay-modify'), ta = $('mod-steps');
+  if (!ov || !ta) return;
+
+  /* hide the old single text box (kept in the page: it still carries the saved value) */
+  const field = ta.closest('.field-row'); field.style.display = 'none';
+  const box = document.createElement('div'); box.className = 'field-row';
+  box.innerHTML = '<span class="field-label">Steps</span><div id="mod-steplist"></div>' +
+    '<button type="button" class="btn btn-ghost btn-small" id="mod-addstep" style="align-self:flex-start">+ Add step</button>' +
+    '<span class="field-hint">Press Enter for a new step. Put "N minutes" in a step and cook mode will suggest a timer for it.</span>';
+  field.insertAdjacentElement('beforebegin', box);
+  const list = $('mod-steplist');
+
+  const grow = t => { t.style.height = 'auto'; t.style.height = Math.max(64, t.scrollHeight + 2) + 'px'; };
+  const sync = () => {
+    ta.value = [...list.querySelectorAll('textarea')]
+      .map(t => t.value.replace(/\s*\n+\s*/g, ' ').trim()).filter(Boolean).join('\n');
+  };
+  const renum = () => {
+    const rows = [...list.children];
+    rows.forEach((r, i) => {
+      r.querySelector('.step-n').textContent = i + 1;
+      r.querySelector('textarea').setAttribute('aria-label', 'Step ' + (i + 1));
+      r.querySelector('.up').disabled = i === 0;
+      r.querySelector('.dn').disabled = i === rows.length - 1;
+    });
+  };
+  const timer = r => {
+    const s = App.autoDetectTimerSeconds(r.querySelector('textarea').value);
+    r.querySelector('.step-timer').textContent = s ? 'Timer: ' + (s >= 3600 ? (Math.round(s / 360) / 10) + ' hr' : Math.round(s / 60) + ' min') : '';
+  };
+
+  function add(text, after, focus) {
+    const r = document.createElement('div'); r.className = 'step-row';
+    r.innerHTML = '<span class="step-n"></span><div class="step-main"><textarea rows="2" placeholder="Describe this step"></textarea><div class="step-timer"></div></div>' +
+      '<div class="step-tools"><button type="button" class="up" aria-label="Move step up">\u2191</button>' +
+      '<button type="button" class="dn" aria-label="Move step down">\u2193</button>' +
+      '<button type="button" class="del" aria-label="Delete step">\u2715</button></div>';
+    const t = r.querySelector('textarea'); t.value = text || '';
+    if (after) after.insertAdjacentElement('afterend', r); else list.appendChild(r);
+
+    t.addEventListener('input', () => { grow(t); timer(r); sync(); });
+    t.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); add('', r, true); }
+      else if (e.key === 'Backspace' && !t.value && list.children.length > 1) {
+        e.preventDefault();
+        const p = r.previousElementSibling || r.nextElementSibling;
+        r.remove(); renum(); sync();
+        if (p) p.querySelector('textarea').focus();
+      }
+    });
+    r.querySelector('.up').onclick = () => { const p = r.previousElementSibling; if (p) { p.before(r); renum(); sync(); } };
+    r.querySelector('.dn').onclick = () => { const n = r.nextElementSibling; if (n) { n.after(r); renum(); sync(); } };
+    r.querySelector('.del').onclick = () => {
+      if (list.children.length === 1) { t.value = ''; grow(t); timer(r); sync(); return; }
+      r.remove(); renum(); sync();
+    };
+    grow(t); timer(r); renum();
+    if (focus) { t.focus(); sync(); }
+    return r;
+  }
+
+  function build() {
+    const steps = ta.value.split('\n').map(s => s.trim()).filter(Boolean);
+    list.innerHTML = '';
+    (steps.length ? steps : ['']).forEach(s => add(s));
+    sync();
+    setTimeout(() => list.querySelectorAll('textarea').forEach(grow), 0);
+  }
+
+  /* rebuild the step list each time the editor opens (it fills the old box first, then opens) */
+  let built = false;
+  new MutationObserver(() => {
+    const open = ov.classList.contains('open');
+    if (open && !built) { built = true; build(); }
+    else if (!open) built = false;
+  }).observe(ov, { attributes: true, attributeFilter: ['class'] });
+
+  $('mod-addstep').onclick = () => add('', list.lastElementChild, true);
+})();
+</script>
 </body>
 </html>
